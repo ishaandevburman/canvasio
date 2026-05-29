@@ -12,10 +12,12 @@ type Point struct {
 }
 
 type Stroke struct {
-	Points []Point `json:"points"`
-	Color  string  `json:"color"`
-	Size   float64 `json:"size"`
-	Tool   string  `json:"tool"`
+	ID      string  `json:"id"`
+	Points  []Point `json:"points"`
+	Color   string  `json:"color"`
+	Size    float64 `json:"size"`
+	Tool    string  `json:"tool"`
+	Pending bool    `json:"pending"`
 }
 
 type Hub struct {
@@ -35,9 +37,18 @@ func (h *Hub) Register(c *Client) {
 	h.clients[c] = true
 	h.mu.Unlock()
 
+	completed := []Stroke{}
+	h.mu.RLock()
+	for _, s := range h.strokes {
+		if !s.Pending {
+			completed = append(completed, s)
+		}
+	}
+	h.mu.RUnlock()
+
 	data, err := json.Marshal(map[string]any{
 		"type":   "init",
-		"strokes": h.strokes,
+		"strokes": completed,
 	})
 	if err != nil {
 		log.Printf("marshal init error: %v", err)
@@ -69,9 +80,11 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 		if err := json.Unmarshal(msg, &payload); err != nil {
 			return
 		}
-		h.mu.Lock()
-		h.strokes = append(h.strokes, payload.Data)
-		h.mu.Unlock()
+		if !payload.Data.Pending {
+			h.mu.Lock()
+			h.strokes = append(h.strokes, payload.Data)
+			h.mu.Unlock()
+		}
 
 	case "clear":
 		h.mu.Lock()
