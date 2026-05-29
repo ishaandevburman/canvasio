@@ -1,0 +1,9 @@
+canvasio
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+__debug_bin
