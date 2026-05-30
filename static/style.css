@@ -96,7 +96,10 @@ body {
 }
 
 #toolbar button {
-  padding: 6px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
   border: 1px solid #ccc;
   background: #fff;
   border-radius: 4px;

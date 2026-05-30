@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>canvasio</title>
-<link rel="stylesheet" href="/static/style.css?v=10">
+<link rel="stylesheet" href="/static/style.css?v=11">
 </head>
 <body>
 <div id="join-modal">
@@ -18,15 +18,15 @@
 <div id="app" style="display:none">
   <div id="toolbar">
     <div class="tool-group">
-      <button id="tool-brush" class="active" data-tool="brush">Brush</button>
-      <button id="tool-eraser" data-tool="eraser">Eraser</button>
-      <button id="tool-rect" data-tool="rect">Rect</button>
-      <button id="tool-circle" data-tool="circle">Circle</button>
-      <button id="tool-line" data-tool="line">Line</button>
+      <button id="tool-brush" class="active" data-tool="brush" title="Brush"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M4 13l-3 3 3-3zM12 0L5 7l3 3 7-7-3-3z" fill="currentColor"/></svg></button>
+      <button id="tool-eraser" data-tool="eraser" title="Eraser"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M2 12l4 4 8-8-4-4-8 8z" fill="currentColor"/></svg></button>
+      <button id="tool-rect" data-tool="rect" title="Rectangle"><svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      <button id="tool-circle" data-tool="circle" title="Circle"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      <button id="tool-line" data-tool="line" title="Line"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     </div>
     <div class="tool-group">
       <label>
-        <input type="color" id="color-picker" value="#000000">
+        <input type="color" id="color-picker" value="#000000" title="Color">
       </label>
     </div>
     <div class="tool-group">
@@ -36,8 +36,8 @@
         <input type="number" id="size-input" min="1" value="3">
       </label>
     </div>
-    <button id="clear-btn">Clear</button>
-    <button id="undo-btn">Undo</button>
+    <button id="undo-btn" title="Undo"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 2L1 7l5 5M1 7h9a3 3 0 0 1 0 6H8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <button id="clear-btn" title="Clear"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 4h10l-1 10H4L3 4zm3-2h4l1 2H5l1-2z" fill="currentColor"/></svg></button>
     <span id="room-label"></span>
     <span id="name-display"></span>
     <span id="status" class="disconnected">Disconnected</span>
@@ -54,6 +54,6 @@
     </div>
   </div>
 </div>
-<script src="/static/script.js?v=10"></script>
+<script src="/static/script.js?v=11"></script>
 </body>
 </html>
