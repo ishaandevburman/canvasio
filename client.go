@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -69,6 +70,7 @@ func (c *Client) WritePump() {
 	defer c.conn.Close()
 
 	for msg := range c.send {
+		c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 		if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 			log.Printf("write error: %v", err)
 			break

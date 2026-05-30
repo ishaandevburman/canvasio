@@ -11,6 +11,7 @@ const joinRoomLabel = document.getElementById('join-room-label')
 const nameDisplay = document.getElementById('name-display')
 const sizeSlider = document.getElementById('size-slider')
 const sizeInput = document.getElementById('size-input')
+const clearModal = document.getElementById('clear-modal')
 
 const USER_COLORS = ['#e74c3c', '#2ecc71', '#3498db', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e']
 
@@ -157,7 +158,6 @@ cursorEl.id = 'cursor-preview'
 document.body.appendChild(cursorEl)
 
 function updateCursorPreview() {
-  const r = size / 2
   cursorEl.className = tool
   cursorEl.style.width = cursorEl.style.height = size + 'px'
   cursorEl.style.background = tool === 'eraser' ? 'transparent' : color
@@ -297,8 +297,9 @@ function connect(name) {
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect()
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY
+  const t = e.touches ? e.touches[0] : e.changedTouches ? e.changedTouches[0] : null
+  const clientX = t ? t.clientX : e.clientX
+  const clientY = t ? t.clientY : e.clientY
   return screenToWorld(clientX - rect.left, clientY - rect.top)
 }
 
@@ -417,8 +418,6 @@ sizeInput.addEventListener('blur', (e) => {
     updateCursorPreview()
   }
 })
-
-const clearModal = document.getElementById('clear-modal')
 
 document.getElementById('clear-btn').addEventListener('click', () => {
   clearModal.style.display = 'flex'
