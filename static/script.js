@@ -436,6 +436,9 @@ function startDraw(e) {
   cancelAnimationFrame(rafId)
   drawing = true
   cursorEl.style.display = 'none'
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'cursor-leave' }))
+  }
   const pos = getPos(e)
   if (tool === 'rect' || tool === 'circle' || tool === 'line') {
     cursorEl.style.display = 'none'
