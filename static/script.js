@@ -232,7 +232,7 @@ canvas.addEventListener('mousemove', (e) => {
     lastCursorSend = now
     const pos = screenToWorld(cx, cy)
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'cursor-move', x: pos.x, y: pos.y }))
+      ws.send(JSON.stringify({ type: 'cursor-move', x: pos.x, y: pos.y, tool, color, size }))
     }
   }
 })
@@ -257,18 +257,26 @@ function renderCursors() {
   for (const [uid, c] of Object.entries(otherCursors)) {
     if (uid === myUserId) continue
     const sp = worldToScreen(c.x, c.y)
-    const color = USER_COLORS[hashString(uid) % USER_COLORS.length]
+    const r = (c.size || 6) * viewport.zoom / 2
     cursorCtx.beginPath()
-    cursorCtx.arc(sp.x, sp.y, 6, 0, Math.PI * 2)
-    cursorCtx.fillStyle = color
+    cursorCtx.arc(sp.x, sp.y, r, 0, Math.PI * 2)
+    if (c.tool === 'eraser') {
+      cursorCtx.fillStyle = 'transparent'
+      cursorCtx.strokeStyle = '#999'
+      cursorCtx.setLineDash([3, 3])
+    } else {
+      cursorCtx.fillStyle = c.color || '#000'
+      cursorCtx.strokeStyle = c.color === '#ffffff' ? '#ccc' : (c.color || '#000')
+      cursorCtx.setLineDash([])
+    }
     cursorCtx.fill()
-    cursorCtx.strokeStyle = '#fff'
     cursorCtx.lineWidth = 2
     cursorCtx.stroke()
+    cursorCtx.setLineDash([])
     cursorCtx.font = '12px system-ui, sans-serif'
     cursorCtx.fillStyle = '#333'
     cursorCtx.textBaseline = 'bottom'
-    cursorCtx.fillText(c.displayName, sp.x + 10, sp.y - 2)
+    cursorCtx.fillText(c.displayName, sp.x + r + 8, sp.y - 2)
   }
   if (Object.keys(otherCursors).length > 0) {
     cursorRafId = requestAnimationFrame(renderCursors)
@@ -404,7 +412,7 @@ function connect(name) {
         renderUsers()
         break
       case 'cursor-move':
-        otherCursors[msg.userId] = { x: msg.x, y: msg.y, displayName: msg.displayName }
+        otherCursors[msg.userId] = { x: msg.x, y: msg.y, displayName: msg.displayName, tool: msg.tool, color: msg.color, size: msg.size }
         scheduleCursorRender()
         break
       case 'cursor-leave':
