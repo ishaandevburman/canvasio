@@ -28,6 +28,7 @@ let lastSendTime = 0
 let strokeIdCounter = 0
 let myUserId = ''
 let users = []
+let localPendingClear = false
 let hasConnected = false
 let viewport = { x: 0, y: 0, zoom: 1 }
 let shapeStart = null
@@ -288,8 +289,15 @@ function connect(name) {
     const msg = JSON.parse(e.data)
     switch (msg.type) {
       case 'init':
-        strokes = msg.strokes || []
-        pendingStrokes = {}
+        if (localPendingClear) {
+          strokes = []
+          pendingStrokes = {}
+          localPendingClear = false
+          ws.send(JSON.stringify({ type: 'clear' }))
+        } else {
+          strokes = msg.strokes || []
+          pendingStrokes = {}
+        }
         myUserId = msg.userId || ''
         users = msg.users || []
         renderUsers()
@@ -366,6 +374,7 @@ function startDraw(e) {
   cursorEl.style.display = 'none'
   const pos = getPos(e)
   if (tool === 'rect' || tool === 'circle' || tool === 'line') {
+    cursorEl.style.display = 'none'
     shapeStart = pos
     currentPoints = [pos]
     return
@@ -527,6 +536,8 @@ document.getElementById('clear-confirm').addEventListener('click', () => {
   ctx.restore()
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'clear' }))
+  } else {
+    localPendingClear = true
   }
 })
 
