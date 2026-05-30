@@ -287,6 +287,7 @@ function flushSend() {
 
 function startDraw(e) {
   e.preventDefault()
+  cancelAnimationFrame(rafId)
   drawing = true
   strokeId = nextStrokeId()
   const pos = getPos(e)
