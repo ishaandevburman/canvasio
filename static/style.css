@@ -253,3 +253,55 @@ body {
   display: inline-block;
   flex-shrink: 0;
 }
+
+#clear-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+}
+
+#clear-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 36px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+
+#clear-card p {
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+#clear-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+#clear-actions button {
+  padding: 8px 24px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #fff;
+}
+
+#clear-actions button:hover {
+  background: #f0f0f0;
+}
+
+#clear-confirm {
+  background: #c00 !important;
+  color: #fff;
+  border-color: #c00 !important;
+}
+
+#clear-confirm:hover {
+  background: #a00 !important;
+}

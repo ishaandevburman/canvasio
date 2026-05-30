@@ -396,27 +396,23 @@ sizeInput.addEventListener('blur', (e) => {
   }
 })
 
-let clearPending = false
-let clearTimer = null
-const clearBtn = document.getElementById('clear-btn')
-clearBtn.addEventListener('click', () => {
-  if (clearPending) {
-    clearPending = false
-    clearTimer = null
-    clearBtn.textContent = 'Clear'
-    strokes = []
-    pendingStrokes = {}
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'clear' }))
-    }
-  } else {
-    clearPending = true
-    clearBtn.textContent = 'Confirm?'
-    clearTimer = setTimeout(() => {
-      clearPending = false
-      clearBtn.textContent = 'Clear'
-    }, 3000)
+const clearModal = document.getElementById('clear-modal')
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  clearModal.style.display = 'flex'
+})
+
+document.getElementById('clear-cancel').addEventListener('click', () => {
+  clearModal.style.display = 'none'
+})
+
+document.getElementById('clear-confirm').addEventListener('click', () => {
+  clearModal.style.display = 'none'
+  strokes = []
+  pendingStrokes = {}
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'clear' }))
   }
 })
 
