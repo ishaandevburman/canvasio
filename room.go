@@ -195,17 +195,23 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 
 	switch envelope.Type {
 	case "draw":
+		if sender.userID == "" {
+			return
+		}
 		var payload struct {
 			Data Stroke `json:"data"`
 		}
 		if err := json.Unmarshal(msg, &payload); err != nil {
 			return
 		}
+		payload.Data.UserID = sender.userID
 		if !payload.Data.Pending {
-			payload.Data.UserID = sender.userID
 			h.mu.Lock()
 			h.strokes = append(h.strokes, payload.Data)
 			h.mu.Unlock()
+		}
+		if b, err := json.Marshal(map[string]any{"type": "draw", "data": payload.Data}); err == nil {
+			msg = b
 		}
 
 	case "clear":
