@@ -135,19 +135,23 @@ const cursorEl = document.createElement('div')
 cursorEl.id = 'cursor-preview'
 document.body.appendChild(cursorEl)
 
+function updateCursorPreview() {
+  const r = size / 2
+  cursorEl.className = tool
+  cursorEl.style.width = cursorEl.style.height = size + 'px'
+  cursorEl.style.background = tool === 'eraser' ? 'transparent' : color
+  cursorEl.style.borderColor = tool === 'eraser' ? '#999' : (color === '#ffffff' ? '#ccc' : color)
+}
+
 let rafId = null
 canvas.addEventListener('mousemove', (e) => {
   if (drawing) return
   cancelAnimationFrame(rafId)
   const cx = e.clientX, cy = e.clientY
   rafId = requestAnimationFrame(() => {
-    const r = size / 2
     cursorEl.style.display = 'block'
-    cursorEl.className = tool
-    cursorEl.style.width = cursorEl.style.height = size + 'px'
-    cursorEl.style.background = tool === 'eraser' ? 'transparent' : color
-    cursorEl.style.borderColor = tool === 'eraser' ? '#999' : (color === '#ffffff' ? '#ccc' : color)
-    cursorEl.style.transform = `translate(${cx - r}px, ${cy - r}px)`
+    updateCursorPreview()
+    cursorEl.style.transform = `translate(${cx - size / 2}px, ${cy - size / 2}px)`
   })
 })
 
@@ -346,6 +350,7 @@ document.getElementById('tool-brush').addEventListener('click', () => {
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'))
   document.getElementById('tool-brush').classList.add('active')
   canvas.style.cursor = 'crosshair'
+  updateCursorPreview()
 })
 
 document.getElementById('tool-eraser').addEventListener('click', () => {
@@ -353,15 +358,18 @@ document.getElementById('tool-eraser').addEventListener('click', () => {
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'))
   document.getElementById('tool-eraser').classList.add('active')
   canvas.style.cursor = 'cell'
+  updateCursorPreview()
 })
 
 document.getElementById('color-picker').addEventListener('input', (e) => {
   color = e.target.value
+  updateCursorPreview()
 })
 
 document.getElementById('size-slider').addEventListener('input', (e) => {
   size = parseInt(e.target.value)
   document.getElementById('size-label').textContent = size
+  updateCursorPreview()
 })
 
 document.getElementById('clear-btn').addEventListener('click', () => {
