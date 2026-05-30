@@ -1,6 +1,16 @@
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
 const statusEl = document.getElementById('status')
+const roomLabelEl = document.getElementById('room-label')
+const userListEl = document.getElementById('user-list')
+const appEl = document.getElementById('app')
+const joinModal = document.getElementById('join-modal')
+const joinNameInput = document.getElementById('join-name-input')
+const joinBtn = document.getElementById('join-btn')
+const joinRoomLabel = document.getElementById('join-room-label')
+const nameDisplay = document.getElementById('name-display')
+
+const USER_COLORS = ['#e74c3c', '#2ecc71', '#3498db', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e']
 
 let tool = 'brush'
 let color = '#000000'
@@ -13,9 +23,49 @@ let strokeId = ''
 let unsentPoints = []
 let lastSendTime = 0
 let strokeIdCounter = 0
+let myUserId = ''
+let users = []
+let hasConnected = false
 
 const SEND_INTERVAL = 30
 const MIN_POINT_DIST = 2
+
+const pathParts = window.location.pathname.split('/').filter(Boolean)
+const roomId = (pathParts[0] === 'room' && pathParts[1]) ? pathParts[1] : 'default'
+roomLabelEl.textContent = roomId === 'default' ? '' : roomId
+joinRoomLabel.textContent = roomId === 'default' ? '' : 'Room: ' + roomId
+
+let userId = localStorage.getItem('canvasio_userId')
+if (!userId) {
+  userId = 'user_' + Math.random().toString(16).slice(2, 10)
+  localStorage.setItem('canvasio_userId', userId)
+}
+
+let displayName = localStorage.getItem('canvasio_displayName') || ''
+if (displayName) joinNameInput.value = displayName
+
+joinModal.style.display = 'flex'
+joinNameInput.focus()
+
+function startApp(name) {
+  joinModal.style.display = 'none'
+  appEl.style.display = 'block'
+  nameDisplay.textContent = name
+  resize()
+  connect(name)
+}
+
+joinBtn.addEventListener('click', () => {
+  const name = joinNameInput.value.trim()
+  if (!name) return
+  displayName = name
+  localStorage.setItem('canvasio_displayName', name)
+  startApp(name)
+})
+
+joinNameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') joinBtn.click()
+})
 
 function resize() {
   canvas.width = window.innerWidth
@@ -24,7 +74,6 @@ function resize() {
 }
 
 window.addEventListener('resize', resize)
-resize()
 
 function redraw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -86,33 +135,52 @@ const cursorEl = document.createElement('div')
 cursorEl.id = 'cursor-preview'
 document.body.appendChild(cursorEl)
 
+let rafId = null
 canvas.addEventListener('mousemove', (e) => {
-  if (!drawing) {
+  if (drawing) return
+  cancelAnimationFrame(rafId)
+  const cx = e.clientX, cy = e.clientY
+  rafId = requestAnimationFrame(() => {
     const r = size / 2
     cursorEl.style.display = 'block'
-    cursorEl.style.width = size + 'px'
-    cursorEl.style.height = size + 'px'
-    cursorEl.style.borderRadius = '50%'
+    cursorEl.className = tool
+    cursorEl.style.width = cursorEl.style.height = size + 'px'
     cursorEl.style.background = tool === 'eraser' ? 'transparent' : color
-    cursorEl.style.border = tool === 'eraser' ? '2px dashed #999' : `2px solid ${color === '#ffffff' ? '#ccc' : color}`
-    cursorEl.style.position = 'fixed'
-    cursorEl.style.pointerEvents = 'none'
-    cursorEl.style.zIndex = '999'
-    cursorEl.style.left = (e.clientX - r) + 'px'
-    cursorEl.style.top = (e.clientY - r) + 'px'
-    cursorEl.style.transform = 'translate(-0.5px, -0.5px)'
-  }
+    cursorEl.style.borderColor = tool === 'eraser' ? '#999' : (color === '#ffffff' ? '#ccc' : color)
+    cursorEl.style.transform = `translate(${cx - r}px, ${cy - r}px)`
+  })
 })
 
 canvas.addEventListener('mouseleave', () => {
   if (!drawing) cursorEl.style.display = 'none'
 })
 
+// --- User list ---
+
+function renderUsers() {
+  if (users.length === 0) {
+    userListEl.textContent = ''
+    userListEl.style.display = 'none'
+    return
+  }
+  userListEl.style.display = 'flex'
+  userListEl.innerHTML = users.map((u, i) => {
+    const label = u.id === myUserId ? `${escapeHtml(u.displayName)} (you)` : escapeHtml(u.displayName)
+    return `<span class="user-chip"><span class="user-dot" style="background:${USER_COLORS[i % USER_COLORS.length]}"></span>${label}</span>`
+  }).join('')
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div')
+  d.textContent = s
+  return d.innerHTML
+}
+
 // --- WebSocket ---
 
 let ws = null
 
-function connect() {
+function connect(name) {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = location.host
   if (!host) {
@@ -120,22 +188,32 @@ function connect() {
     statusEl.className = 'disconnected'
     return
   }
+  if (!hasConnected) {
+    statusEl.textContent = 'Connecting...'
+    statusEl.className = 'disconnected'
+  }
   try {
-    ws = new WebSocket(`${protocol}//${host}/ws`)
+    ws = new WebSocket(`${protocol}//${host}/ws?room=${roomId}`)
   } catch (e) {
     statusEl.textContent = 'Connection failed'
     statusEl.className = 'disconnected'
-    setTimeout(connect, 2000)
+    setTimeout(() => connect(name), 2000)
     return
   }
   ws.onopen = () => {
+    hasConnected = true
     statusEl.textContent = 'Connected'
     statusEl.className = 'connected'
+    ws.send(JSON.stringify({
+      type: 'join',
+      userId: userId,
+      displayName: name,
+    }))
   }
   ws.onclose = () => {
     statusEl.textContent = 'Disconnected'
     statusEl.className = 'disconnected'
-    setTimeout(connect, 2000)
+    setTimeout(() => connect(name), 2000)
   }
   ws.onmessage = (e) => {
     const msg = JSON.parse(e.data)
@@ -143,6 +221,9 @@ function connect() {
       case 'init':
         strokes = msg.strokes || []
         pendingStrokes = {}
+        myUserId = msg.userId || ''
+        users = msg.users || []
+        renderUsers()
         redraw()
         break
       case 'draw': {
@@ -166,11 +247,23 @@ function connect() {
         pendingStrokes = {}
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         break
+      case 'user-joined':
+        users = users.filter(u => u.id !== msg.userId)
+        users.push({ id: msg.userId, displayName: msg.displayName })
+        renderUsers()
+        break
+      case 'user-left':
+        users = users.filter(u => u.id !== msg.userId)
+        renderUsers()
+        break
+      case 'user-updated':
+        const u = users.find(u => u.id === msg.userId)
+        if (u) u.displayName = msg.displayName
+        renderUsers()
+        break
     }
   }
 }
-
-connect()
 
 // --- Drawing ---
 
@@ -279,4 +372,36 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'clear' }))
   }
+})
+
+nameDisplay.addEventListener('click', () => {
+  const input = document.createElement('input')
+  input.type = 'text'
+  input.value = nameDisplay.textContent
+  input.maxLength = 24
+  input.className = 'name-edit-input'
+  nameDisplay.textContent = ''
+  nameDisplay.appendChild(input)
+  input.focus()
+  input.select()
+
+  function done() {
+    const newName = input.value.trim()
+    if (newName && newName !== displayName) {
+      displayName = newName
+      localStorage.setItem('canvasio_displayName', newName)
+      nameDisplay.textContent = newName
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set-name', displayName: newName }))
+      }
+    } else {
+      nameDisplay.textContent = displayName
+    }
+  }
+
+  input.addEventListener('blur', done)
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { input.blur() }
+    if (e.key === 'Escape') { nameDisplay.textContent = displayName }
+  })
 })

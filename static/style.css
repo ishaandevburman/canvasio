@@ -10,6 +10,71 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
 }
 
+#join-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+}
+
+#join-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px 40px;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  max-width: 340px;
+  width: 90%;
+}
+
+#join-card h1 {
+  font-size: 24px;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+#join-room-label {
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 20px;
+}
+
+#join-name-input {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  text-align: center;
+  margin-bottom: 12px;
+  outline: none;
+}
+
+#join-name-input:focus {
+  border-color: #333;
+}
+
+#join-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #333;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#join-btn:hover {
+  background: #555;
+}
+
 #toolbar {
   position: fixed;
   top: 0;
@@ -73,6 +138,45 @@ body {
   border-color: #c00;
 }
 
+#room-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  padding: 4px 10px;
+  background: #eee;
+  border-radius: 4px;
+}
+
+#name-display {
+  font-size: 12px;
+  font-weight: 600;
+  color: #333;
+  padding: 4px 10px;
+  background: #e8f0fe;
+  border-radius: 4px;
+  cursor: pointer;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#name-display:hover {
+  background: #d4e3fd;
+}
+
+.name-edit-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  background: transparent;
+  color: #333;
+}
+
 #status {
   margin-left: auto;
   font-size: 12px;
@@ -93,4 +197,52 @@ body {
 #canvas {
   display: block;
   cursor: crosshair;
+}
+
+#cursor-preview {
+  position: fixed;
+  pointer-events: none;
+  z-index: 999;
+  border-radius: 50%;
+  display: none;
+  border: 2px solid;
+}
+
+#cursor-preview.eraser {
+  background: transparent;
+  border: 2px dashed #999;
+}
+
+#user-list {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 10;
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  max-width: 300px;
+}
+
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #f0f0f0;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.user-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
 }

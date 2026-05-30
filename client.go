@@ -1,15 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
 
 type Client struct {
-	hub  *Hub
-	conn *websocket.Conn
-	send chan []byte
+	hub         *Hub
+	conn        *websocket.Conn
+	send        chan []byte
+	userID      string
+	displayName string
+	closeOnce   sync.Once
+	replaced    bool
 }
 
 func NewClient(hub *Hub, conn *websocket.Conn) *Client {
@@ -18,6 +24,12 @@ func NewClient(hub *Hub, conn *websocket.Conn) *Client {
 		conn: conn,
 		send: make(chan []byte, 256),
 	}
+}
+
+func (c *Client) closeSend() {
+	c.closeOnce.Do(func() {
+		close(c.send)
+	})
 }
 
 func (c *Client) ReadPump() {
@@ -34,7 +46,22 @@ func (c *Client) ReadPump() {
 			}
 			break
 		}
-		c.hub.Broadcast(msg, c)
+
+		var envelope struct {
+			Type string `json:"type"`
+		}
+		if err := json.Unmarshal(msg, &envelope); err != nil {
+			continue
+		}
+
+		switch envelope.Type {
+		case "join":
+			c.hub.HandleJoin(c, msg)
+		case "set-name":
+			c.hub.HandleSetName(c, msg)
+		default:
+			c.hub.Broadcast(msg, c)
+		}
 	}
 }
 
