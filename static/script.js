@@ -378,9 +378,8 @@ sizeSlider.addEventListener('input', (e) => {
 sizeInput.addEventListener('input', (e) => {
   let v = parseInt(e.target.value)
   if (isNaN(v) || v < 1) v = 1
-  if (v > 50) v = 50
   size = v
-  sizeSlider.value = v
+  if (v <= parseInt(sizeSlider.max)) sizeSlider.value = v
   e.target.value = v
   updateCursorPreview()
 })
