@@ -1,5 +1,7 @@
 const canvas = document.getElementById('canvas')
 const ctx = canvas.getContext('2d')
+const cursorCanvas = document.getElementById('cursor-canvas')
+const cursorCtx = cursorCanvas.getContext('2d')
 const statusEl = document.getElementById('status')
 const roomLabelEl = document.getElementById('room-label')
 const userListEl = document.getElementById('user-list')
@@ -32,6 +34,10 @@ let localPendingClear = false
 let hasConnected = false
 let viewport = { x: 0, y: 0, zoom: 1 }
 let shapeStart = null
+let otherCursors = {}
+let lastCursorSend = 0
+let cursorRafId = null
+const CURSOR_SEND_INTERVAL = 50
 
 const SEND_INTERVAL = 30
 const MIN_POINT_DIST = 2
@@ -85,6 +91,8 @@ joinNameInput.addEventListener('keydown', (e) => {
 function resize() {
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
+  cursorCanvas.width = window.innerWidth
+  cursorCanvas.height = window.innerHeight
   redraw()
 }
 
@@ -219,13 +227,53 @@ canvas.addEventListener('mousemove', (e) => {
     updateCursorPreview()
     cursorEl.style.transform = `translate(${cx - size / 2}px, ${cy - size / 2}px)`
   })
+  const now = performance.now()
+  if (now - lastCursorSend > CURSOR_SEND_INTERVAL) {
+    lastCursorSend = now
+    const pos = screenToWorld(cx, cy)
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'cursor-move', x: pos.x, y: pos.y }))
+    }
+  }
 })
 
 canvas.addEventListener('mouseleave', () => {
   if (!drawing) cursorEl.style.display = 'none'
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'cursor-leave' }))
+  }
 })
 
 // --- User list ---
+
+function scheduleCursorRender() {
+  if (cursorRafId) return
+  cursorRafId = requestAnimationFrame(renderCursors)
+}
+
+function renderCursors() {
+  cursorRafId = null
+  cursorCtx.clearRect(0, 0, cursorCanvas.width, cursorCanvas.height)
+  for (const [uid, c] of Object.entries(otherCursors)) {
+    if (uid === myUserId) continue
+    const sp = worldToScreen(c.x, c.y)
+    const color = USER_COLORS[hashString(uid) % USER_COLORS.length]
+    cursorCtx.beginPath()
+    cursorCtx.arc(sp.x, sp.y, 6, 0, Math.PI * 2)
+    cursorCtx.fillStyle = color
+    cursorCtx.fill()
+    cursorCtx.strokeStyle = '#fff'
+    cursorCtx.lineWidth = 2
+    cursorCtx.stroke()
+    cursorCtx.font = '12px system-ui, sans-serif'
+    cursorCtx.fillStyle = '#333'
+    cursorCtx.textBaseline = 'bottom'
+    cursorCtx.fillText(c.displayName, sp.x + 10, sp.y - 2)
+  }
+  if (Object.keys(otherCursors).length > 0) {
+    cursorRafId = requestAnimationFrame(renderCursors)
+  }
+}
 
 function hashString(s) {
   let h = 0
@@ -341,6 +389,7 @@ function connect(name) {
         renderUsers()
         break
       case 'user-left':
+        delete otherCursors[msg.userId]
         users = users.filter(u => u.id !== msg.userId)
         renderUsers()
         break
@@ -353,6 +402,13 @@ function connect(name) {
         const u = users.find(u => u.id === msg.userId)
         if (u) u.displayName = msg.displayName
         renderUsers()
+        break
+      case 'cursor-move':
+        otherCursors[msg.userId] = { x: msg.x, y: msg.y, displayName: msg.displayName }
+        scheduleCursorRender()
+        break
+      case 'cursor-leave':
+        delete otherCursors[msg.userId]
         break
     }
   }

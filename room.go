@@ -78,13 +78,25 @@ func (h *Hub) Unregister(c *Client) {
 		h.roomManager.removeRoom(h.roomID)
 	}
 
+	if c.userID != "" {
+		cursorMsg, _ := json.Marshal(map[string]any{
+			"type":   "cursor-leave",
+			"userId": c.userID,
+		})
+		h.mu.RLock()
+		for cl := range h.clients {
+			select {
+			case cl.send <- cursorMsg:
+			default:
+			}
+		}
+		h.mu.RUnlock()
+	}
+
 	if c.replaced || c.userID == "" {
 		return
 	}
 
-	// A new connection with the same userId may have joined while we
-	// weren't holding the lock. If so, skip user-left (the new
-	// connection's HandleJoin already sent or will send user-joined).
 	h.mu.RLock()
 	for cl := range h.clients {
 		if cl.userID == c.userID {
@@ -269,6 +281,30 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 		h.strokes = nil
 		h.mu.Unlock()
 		h.scheduleSave()
+
+	case "cursor-move":
+		var payload struct {
+			X float64 `json:"x"`
+			Y float64 `json:"y"`
+		}
+		if err := json.Unmarshal(msg, &payload); err != nil {
+			return
+		}
+		out, _ := json.Marshal(map[string]any{
+			"type":        "cursor-move",
+			"userId":      sender.userID,
+			"x":           payload.X,
+			"y":           payload.Y,
+			"displayName": sender.displayName,
+		})
+		msg = out
+
+	case "cursor-leave":
+		out, _ := json.Marshal(map[string]any{
+			"type":   "cursor-leave",
+			"userId": sender.userID,
+		})
+		msg = out
 	}
 
 	h.mu.RLock()
