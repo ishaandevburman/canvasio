@@ -297,7 +297,7 @@ function connect(name) {
 
 function getPos(e) {
   const rect = canvas.getBoundingClientRect()
-  const t = e.touches ? e.touches[0] : e.changedTouches ? e.changedTouches[0] : null
+  const t = e.touches?.length ? e.touches[0] : e.changedTouches?.[0]
   const clientX = t ? t.clientX : e.clientX
   const clientY = t ? t.clientY : e.clientY
   return screenToWorld(clientX - rect.left, clientY - rect.top)

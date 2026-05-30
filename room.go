@@ -2,8 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"log"
+	"os"
+	"path/filepath"
 	"sync"
+	"time"
 )
+
+const saveDir = "data"
 
 type Point struct {
 	X float64 `json:"x"`
@@ -31,13 +37,16 @@ type Hub struct {
 	mu          sync.RWMutex
 	clients     map[*Client]bool
 	strokes     []Stroke
+	saveTimer   *time.Timer
 }
 
 func NewHub(roomID string) *Hub {
-	return &Hub{
+	h := &Hub{
 		roomID:  roomID,
 		clients: make(map[*Client]bool),
 	}
+	h.loadFromDisk()
+	return h
 }
 
 func (h *Hub) Register(c *Client) {
@@ -54,6 +63,7 @@ func (h *Hub) Unregister(c *Client) {
 	c.closeSend()
 
 	if empty {
+		h.flushSave()
 		h.roomManager.removeRoom(h.roomID)
 	}
 
@@ -209,6 +219,7 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 			h.mu.Lock()
 			h.strokes = append(h.strokes, payload.Data)
 			h.mu.Unlock()
+			h.scheduleSave()
 		}
 		if b, err := json.Marshal(map[string]any{"type": "draw", "data": payload.Data}); err == nil {
 			msg = b
@@ -218,6 +229,7 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 		h.mu.Lock()
 		h.strokes = nil
 		h.mu.Unlock()
+		h.scheduleSave()
 	}
 
 	h.mu.RLock()
@@ -231,6 +243,87 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 		default:
 		}
 	}
+}
+
+// --- Persistence ---
+
+func (h *Hub) scheduleSave() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.saveTimer != nil {
+		h.saveTimer.Stop()
+	}
+	h.saveTimer = time.AfterFunc(time.Second, func() {
+		h.mu.Lock()
+		defer h.mu.Unlock()
+		h.writeToDisk()
+	})
+}
+
+func (h *Hub) flushSave() {
+	h.mu.Lock()
+	if h.saveTimer != nil {
+		h.saveTimer.Stop()
+		h.saveTimer = nil
+		h.mu.Unlock()
+		h.writeToDisk()
+	} else {
+		h.mu.Unlock()
+	}
+}
+
+func (h *Hub) writeToDisk() {
+	completed := make([]Stroke, 0, len(h.strokes))
+	for _, s := range h.strokes {
+		if !s.Pending {
+			completed = append(completed, s)
+		}
+	}
+
+	data, err := json.Marshal(map[string]any{"strokes": completed})
+	if err != nil {
+		log.Printf("save marshal error: %v", err)
+		return
+	}
+
+	if err := os.MkdirAll(saveDir, 0755); err != nil {
+		log.Printf("save mkdir error: %v", err)
+		return
+	}
+
+	tmpPath := filepath.Join(saveDir, h.roomID+".json.tmp")
+	finalPath := filepath.Join(saveDir, h.roomID+".json")
+
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+		log.Printf("save write error: %v", err)
+		return
+	}
+
+	if err := os.Rename(tmpPath, finalPath); err != nil {
+		log.Printf("save rename error: %v", err)
+	}
+}
+
+func (h *Hub) loadFromDisk() {
+	data, err := os.ReadFile(filepath.Join(saveDir, h.roomID+".json"))
+	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("load error: %v", err)
+		}
+		return
+	}
+
+	var payload struct {
+		Strokes []Stroke `json:"strokes"`
+	}
+	if err := json.Unmarshal(data, &payload); err != nil {
+		log.Printf("load unmarshal error: %v", err)
+		return
+	}
+
+	h.mu.Lock()
+	h.strokes = payload.Strokes
+	h.mu.Unlock()
 }
 
 type RoomManager struct {

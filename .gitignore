@@ -7,3 +7,5 @@ canvasio
 *.test
 *.out
 __debug_bin
+data/*.json
+data/*.json.tmp
