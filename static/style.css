@@ -126,6 +126,32 @@ body {
   background: none;
 }
 
+#color-palette {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+}
+
+.palette-swatch {
+  width: 16px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 2px solid #ccc !important;
+  cursor: pointer;
+}
+
+.palette-swatch:hover {
+  transform: scale(1.2);
+}
+
+.palette-swatch.active {
+  border-color: #333 !important;
+  outline: 2px solid #333;
+  outline-offset: 1px;
+}
+
 #size-slider {
   width: 80px;
   vertical-align: middle;

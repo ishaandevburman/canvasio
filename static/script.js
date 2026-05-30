@@ -491,7 +491,18 @@ document.querySelectorAll('[data-tool="rect"], [data-tool="circle"], [data-tool=
 
 document.getElementById('color-picker').addEventListener('input', (e) => {
   color = e.target.value
+  document.querySelectorAll('.palette-swatch').forEach(b => b.classList.remove('active'))
   updateCursorPreview()
+})
+
+document.querySelectorAll('.palette-swatch').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.palette-swatch').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    color = btn.dataset.color
+    document.getElementById('color-picker').value = color
+    updateCursorPreview()
+  })
 })
 
 sizeSlider.addEventListener('input', (e) => {
