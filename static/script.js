@@ -266,8 +266,11 @@ function renderCursors() {
     cursorCtx.lineWidth = 2
     cursorCtx.stroke()
     cursorCtx.font = '12px system-ui, sans-serif'
-    cursorCtx.fillStyle = '#333'
     cursorCtx.textBaseline = 'bottom'
+    cursorCtx.strokeStyle = '#fff'
+    cursorCtx.lineWidth = 3
+    cursorCtx.strokeText(c.displayName, sp.x + 10, sp.y - 2)
+    cursorCtx.fillStyle = '#333'
     cursorCtx.fillText(c.displayName, sp.x + 10, sp.y - 2)
   }
   if (Object.keys(otherCursors).length > 0) {
@@ -431,6 +434,16 @@ function flushSend() {
   unsentPoints = []
 }
 
+function sendCursorPos(pos) {
+  const now = performance.now()
+  if (now - lastCursorSend > CURSOR_SEND_INTERVAL) {
+    lastCursorSend = now
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'cursor-move', x: pos.x, y: pos.y }))
+    }
+  }
+}
+
 function startDraw(e) {
   e.preventDefault()
   cancelAnimationFrame(rafId)
@@ -457,6 +470,7 @@ function moveDraw(e) {
     currentPoints = [shapeStart, pos]
     redraw()
     drawShapePreview(shapeStart, pos)
+    sendCursorPos(pos)
     return
   }
   const last = currentPoints[currentPoints.length - 1]
@@ -464,6 +478,7 @@ function moveDraw(e) {
 
   currentPoints.push(pos)
   unsentPoints.push(pos)
+  sendCursorPos(pos)
 
   if (currentPoints.length >= 2) {
     drawSegment([currentPoints[currentPoints.length - 2], pos], color, size, tool)
