@@ -43,7 +43,8 @@ function worldToScreen(wx, wy) {
 }
 
 const pathParts = window.location.pathname.split('/').filter(Boolean)
-const roomId = (pathParts[0] === 'room' && pathParts[1]) ? pathParts[1] : 'default'
+let roomId = (pathParts[0] === 'room' && pathParts[1]) ? pathParts[1] : 'default'
+roomId = roomId.replace(/[^a-zA-Z0-9_-]/g, '_')
 roomLabelEl.textContent = roomId === 'default' ? '' : roomId
 joinRoomLabel.textContent = roomId === 'default' ? '' : 'Room: ' + roomId
 

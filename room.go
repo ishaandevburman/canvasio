@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -40,7 +41,17 @@ type Hub struct {
 	saveTimer   *time.Timer
 }
 
+func sanitizeRoomID(id string) string {
+	return strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
+			return r
+		}
+		return '_'
+	}, id)
+}
+
 func NewHub(roomID string) *Hub {
+	roomID = sanitizeRoomID(roomID)
 	h := &Hub{
 		roomID:  roomID,
 		clients: make(map[*Client]bool),
