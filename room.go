@@ -256,6 +256,9 @@ func (h *Hub) scheduleSave() {
 	h.saveTimer = time.AfterFunc(time.Second, func() {
 		h.mu.Lock()
 		defer h.mu.Unlock()
+		if len(h.clients) == 0 {
+			return
+		}
 		h.writeToDisk()
 	})
 }
