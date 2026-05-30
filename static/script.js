@@ -300,8 +300,8 @@ function startDraw(e) {
 }
 
 function moveDraw(e) {
-  e.preventDefault()
   if (!drawing) return
+  e.preventDefault()
   const pos = getPos(e)
   const last = currentPoints[currentPoints.length - 1]
   if (last && dist(last, pos) < MIN_POINT_DIST) return
@@ -321,8 +321,8 @@ function moveDraw(e) {
 }
 
 function endDraw(e) {
-  e.preventDefault()
   if (!drawing) return
+  e.preventDefault()
   drawing = false
 
   if (currentPoints.length > 0) {
