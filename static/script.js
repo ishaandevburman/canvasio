@@ -228,12 +228,11 @@ canvas.addEventListener('mouseleave', () => {
 // --- User list ---
 
 function hashString(s) {
-  let hash = 0
+  let h = 0
   for (let i = 0; i < s.length; i++) {
-    hash = ((hash << 5) - hash) + s.charCodeAt(i)
-    hash |= 0
+    h = (h * 31 + s.charCodeAt(i)) % 2147483647
   }
-  return Math.abs(hash)
+  return h
 }
 
 function renderUsers() {
