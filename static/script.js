@@ -28,9 +28,18 @@ let strokeIdCounter = 0
 let myUserId = ''
 let users = []
 let hasConnected = false
+let viewport = { x: 0, y: 0, zoom: 1 }
 
 const SEND_INTERVAL = 30
 const MIN_POINT_DIST = 2
+
+function screenToWorld(sx, sy) {
+  return { x: (sx - viewport.x) / viewport.zoom, y: (sy - viewport.y) / viewport.zoom }
+}
+
+function worldToScreen(wx, wy) {
+  return { x: wx * viewport.zoom + viewport.x, y: wy * viewport.zoom + viewport.y }
+}
 
 const pathParts = window.location.pathname.split('/').filter(Boolean)
 const roomId = (pathParts[0] === 'room' && pathParts[1]) ? pathParts[1] : 'default'
@@ -78,7 +87,10 @@ function resize() {
 window.addEventListener('resize', resize)
 
 function redraw() {
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.restore()
   for (const s of strokes) {
     drawStroke(s)
   }
@@ -88,11 +100,14 @@ function redraw() {
 }
 
 function drawStroke(s) {
+  ctx.save()
+  ctx.setTransform(viewport.zoom, 0, 0, viewport.zoom, viewport.x, viewport.y)
   if (s.points.length < 2) {
     ctx.fillStyle = s.tool === 'eraser' ? '#fff' : s.color
     ctx.beginPath()
     ctx.arc(s.points[0].x, s.points[0].y, s.size / 2, 0, Math.PI * 2)
     ctx.fill()
+    ctx.restore()
     return
   }
   ctx.strokeStyle = s.tool === 'eraser' ? '#fff' : s.color
@@ -105,10 +120,13 @@ function drawStroke(s) {
     ctx.lineTo(s.points[i].x, s.points[i].y)
   }
   ctx.stroke()
+  ctx.restore()
 }
 
 function drawSegment(points, color, size, tool) {
   if (points.length < 2) return
+  ctx.save()
+  ctx.setTransform(viewport.zoom, 0, 0, viewport.zoom, viewport.x, viewport.y)
   ctx.strokeStyle = tool === 'eraser' ? '#fff' : color
   ctx.lineWidth = size
   ctx.lineCap = 'round'
@@ -119,6 +137,7 @@ function drawSegment(points, color, size, tool) {
     ctx.lineTo(points[i].x, points[i].y)
   }
   ctx.stroke()
+  ctx.restore()
 }
 
 function dist(a, b) {
@@ -251,7 +270,10 @@ function connect(name) {
       case 'clear':
         strokes = []
         pendingStrokes = {}
+        ctx.save()
+        ctx.setTransform(1, 0, 0, 1, 0, 0)
         ctx.clearRect(0, 0, canvas.width, canvas.height)
+        ctx.restore()
         break
       case 'user-joined':
         users = users.filter(u => u.id !== msg.userId)
@@ -277,7 +299,7 @@ function getPos(e) {
   const rect = canvas.getBoundingClientRect()
   const clientX = e.touches ? e.touches[0].clientX : e.clientX
   const clientY = e.touches ? e.touches[0].clientY : e.clientY
-  return { x: clientX - rect.left, y: clientY - rect.top }
+  return screenToWorld(clientX - rect.left, clientY - rect.top)
 }
 
 function flushSend() {
@@ -410,7 +432,10 @@ document.getElementById('clear-confirm').addEventListener('click', () => {
   clearModal.style.display = 'none'
   strokes = []
   pendingStrokes = {}
+  ctx.save()
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.restore()
   if (ws && ws.readyState === WebSocket.OPEN) {
     ws.send(JSON.stringify({ type: 'clear' }))
   }
