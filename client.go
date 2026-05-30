@@ -60,6 +60,8 @@ func (c *Client) ReadPump() {
 			c.hub.HandleJoin(c, msg)
 		case "set-name":
 			c.hub.HandleSetName(c, msg)
+		case "undo":
+			c.hub.HandleUndo(c)
 		default:
 			c.hub.Broadcast(msg, c)
 		}

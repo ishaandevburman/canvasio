@@ -30,6 +30,7 @@ let myUserId = ''
 let users = []
 let hasConnected = false
 let viewport = { x: 0, y: 0, zoom: 1 }
+let shapeStart = null
 
 const SEND_INTERVAL = 30
 const MIN_POINT_DIST = 2
@@ -104,15 +105,36 @@ function redraw() {
 function drawStroke(s) {
   ctx.save()
   ctx.setTransform(viewport.zoom, 0, 0, viewport.zoom, viewport.x, viewport.y)
+  const sw = s.tool === 'eraser' ? '#fff' : s.color
+  if (s.tool === 'rect' || s.tool === 'circle' || s.tool === 'line') {
+    if (s.points.length < 2) { ctx.restore(); return }
+    ctx.strokeStyle = sw
+    ctx.lineWidth = s.size
+    const p0 = s.points[0], p1 = s.points[s.points.length - 1]
+    if (s.tool === 'rect') {
+      ctx.strokeRect(Math.min(p0.x, p1.x), Math.min(p0.y, p1.y), Math.abs(p1.x - p0.x), Math.abs(p1.y - p0.y))
+    } else if (s.tool === 'circle') {
+      ctx.beginPath()
+      ctx.ellipse((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, Math.abs(p1.x - p0.x) / 2, Math.abs(p1.y - p0.y) / 2, 0, 0, Math.PI * 2)
+      ctx.stroke()
+    } else if (s.tool === 'line') {
+      ctx.beginPath()
+      ctx.moveTo(p0.x, p0.y)
+      ctx.lineTo(p1.x, p1.y)
+      ctx.stroke()
+    }
+    ctx.restore()
+    return
+  }
   if (s.points.length < 2) {
-    ctx.fillStyle = s.tool === 'eraser' ? '#fff' : s.color
+    ctx.fillStyle = sw
     ctx.beginPath()
     ctx.arc(s.points[0].x, s.points[0].y, s.size / 2, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
     return
   }
-  ctx.strokeStyle = s.tool === 'eraser' ? '#fff' : s.color
+  ctx.strokeStyle = sw
   ctx.lineWidth = s.size
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -139,6 +161,27 @@ function drawSegment(points, color, size, tool) {
     ctx.lineTo(points[i].x, points[i].y)
   }
   ctx.stroke()
+  ctx.restore()
+}
+
+function drawShapePreview(p0, p1) {
+  if (!p0 || !p1) return
+  ctx.save()
+  ctx.setTransform(viewport.zoom, 0, 0, viewport.zoom, viewport.x, viewport.y)
+  ctx.strokeStyle = color
+  ctx.lineWidth = size
+  if (tool === 'rect') {
+    ctx.strokeRect(Math.min(p0.x, p1.x), Math.min(p0.y, p1.y), Math.abs(p1.x - p0.x), Math.abs(p1.y - p0.y))
+  } else if (tool === 'circle') {
+    ctx.beginPath()
+    ctx.ellipse((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, Math.abs(p1.x - p0.x) / 2, Math.abs(p1.y - p0.y) / 2, 0, 0, Math.PI * 2)
+    ctx.stroke()
+  } else if (tool === 'line') {
+    ctx.beginPath()
+    ctx.moveTo(p0.x, p0.y)
+    ctx.lineTo(p1.x, p1.y)
+    ctx.stroke()
+  }
   ctx.restore()
 }
 
@@ -285,6 +328,11 @@ function connect(name) {
         users = users.filter(u => u.id !== msg.userId)
         renderUsers()
         break
+      case 'stroke-removed':
+        strokes = strokes.filter(s => s.id !== msg.strokeId)
+        delete pendingStrokes[msg.strokeId]
+        redraw()
+        break
       case 'user-updated':
         const u = users.find(u => u.id === msg.userId)
         if (u) u.displayName = msg.displayName
@@ -315,18 +363,29 @@ function startDraw(e) {
   e.preventDefault()
   cancelAnimationFrame(rafId)
   drawing = true
-  strokeId = nextStrokeId()
+  cursorEl.style.display = 'none'
   const pos = getPos(e)
+  if (tool === 'rect' || tool === 'circle' || tool === 'line') {
+    shapeStart = pos
+    currentPoints = [pos]
+    return
+  }
+  strokeId = nextStrokeId()
   currentPoints = [pos]
   unsentPoints = [pos]
   lastSendTime = performance.now()
-  cursorEl.style.display = 'none'
 }
 
 function moveDraw(e) {
   if (!drawing) return
   e.preventDefault()
   const pos = getPos(e)
+  if (tool === 'rect' || tool === 'circle' || tool === 'line') {
+    currentPoints = [shapeStart, pos]
+    redraw()
+    drawShapePreview(shapeStart, pos)
+    return
+  }
   const last = currentPoints[currentPoints.length - 1]
   if (last && dist(last, pos) < MIN_POINT_DIST) return
 
@@ -348,6 +407,20 @@ function endDraw(e) {
   if (!drawing) return
   e.preventDefault()
   drawing = false
+
+  if (tool === 'rect' || tool === 'circle' || tool === 'line') {
+    if (currentPoints.length === 2) {
+      const id = nextStrokeId()
+      const stroke = { id, points: currentPoints, color, size, tool, pending: false }
+      strokes.push(stroke)
+      ws.send(JSON.stringify({ type: 'draw', data: stroke }))
+      redraw()
+    }
+    shapeStart = null
+    currentPoints = []
+    cursorEl.style.display = 'block'
+    return
+  }
 
   if (currentPoints.length > 0) {
     flushSend()
@@ -388,6 +461,16 @@ document.getElementById('tool-eraser').addEventListener('click', () => {
   updateCursorPreview()
 })
 
+document.querySelectorAll('[data-tool="rect"], [data-tool="circle"], [data-tool="line"]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    tool = btn.dataset.tool
+    document.querySelectorAll('[data-tool]').forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+    canvas.style.cursor = 'crosshair'
+    updateCursorPreview()
+  })
+})
+
 document.getElementById('color-picker').addEventListener('input', (e) => {
   color = e.target.value
   updateCursorPreview()
@@ -426,6 +509,12 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 
 document.getElementById('clear-cancel').addEventListener('click', () => {
   clearModal.style.display = 'none'
+})
+
+document.getElementById('undo-btn').addEventListener('click', () => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'undo' }))
+  }
 })
 
 document.getElementById('clear-confirm').addEventListener('click', () => {

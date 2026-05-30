@@ -206,6 +206,34 @@ func (h *Hub) HandleSetName(c *Client, msg []byte) {
 	}
 }
 
+func (h *Hub) HandleUndo(c *Client) {
+	h.mu.Lock()
+	for i := len(h.strokes) - 1; i >= 0; i-- {
+		if h.strokes[i].UserID == c.userID && !h.strokes[i].Pending {
+			removed := h.strokes[i]
+			h.strokes = append(h.strokes[:i], h.strokes[i+1:]...)
+			h.mu.Unlock()
+
+			msg, _ := json.Marshal(map[string]any{
+				"type":      "stroke-removed",
+				"strokeId": removed.ID,
+			})
+			h.mu.RLock()
+			for cl := range h.clients {
+				select {
+				case cl.send <- msg:
+				default:
+				}
+			}
+			h.mu.RUnlock()
+
+			h.scheduleSave()
+			return
+		}
+	}
+	h.mu.Unlock()
+}
+
 func (h *Hub) Broadcast(msg []byte, sender *Client) {
 	var envelope struct {
 		Type string `json:"type"`
