@@ -9,3 +9,9 @@ canvasio
 __debug_bin
 data/*.json
 data/*.json.tmp
+
+# Ignore all Markdown files (local planning, not for public repos)
+*.md
+
+# Do not ignore README.md
+!**/README.md
