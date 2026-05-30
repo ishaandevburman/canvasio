@@ -284,11 +284,8 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 
 	case "cursor-move":
 		var payload struct {
-			X     float64 `json:"x"`
-			Y     float64 `json:"y"`
-			Tool  string  `json:"tool"`
-			Color string  `json:"color"`
-			Size  float64 `json:"size"`
+			X float64 `json:"x"`
+			Y float64 `json:"y"`
 		}
 		if err := json.Unmarshal(msg, &payload); err != nil {
 			return
@@ -298,9 +295,6 @@ func (h *Hub) Broadcast(msg []byte, sender *Client) {
 			"userId":      sender.userID,
 			"x":           payload.X,
 			"y":           payload.Y,
-			"tool":        payload.Tool,
-			"color":       payload.Color,
-			"size":        payload.Size,
 			"displayName": sender.displayName,
 		})
 		msg = out
