@@ -227,6 +227,15 @@ canvas.addEventListener('mouseleave', () => {
 
 // --- User list ---
 
+function hashString(s) {
+  let hash = 0
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) - hash) + s.charCodeAt(i)
+    hash |= 0
+  }
+  return Math.abs(hash)
+}
+
 function renderUsers() {
   if (users.length === 0) {
     userListEl.textContent = ''
@@ -234,9 +243,9 @@ function renderUsers() {
     return
   }
   userListEl.style.display = 'flex'
-  userListEl.innerHTML = users.map((u, i) => {
+  userListEl.innerHTML = users.map(u => {
     const label = u.id === myUserId ? `${escapeHtml(u.displayName)} (you)` : escapeHtml(u.displayName)
-    return `<span class="user-chip"><span class="user-dot" style="background:${USER_COLORS[i % USER_COLORS.length]}"></span>${label}</span>`
+    return `<span class="user-chip"><span class="user-dot" style="background:${USER_COLORS[hashString(u.id) % USER_COLORS.length]}"></span>${label}</span>`
   }).join('')
 }
 
