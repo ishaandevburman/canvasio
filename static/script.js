@@ -9,6 +9,8 @@ const joinNameInput = document.getElementById('join-name-input')
 const joinBtn = document.getElementById('join-btn')
 const joinRoomLabel = document.getElementById('join-room-label')
 const nameDisplay = document.getElementById('name-display')
+const sizeSlider = document.getElementById('size-slider')
+const sizeInput = document.getElementById('size-input')
 
 const USER_COLORS = ['#e74c3c', '#2ecc71', '#3498db', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e']
 
@@ -367,9 +369,19 @@ document.getElementById('color-picker').addEventListener('input', (e) => {
   updateCursorPreview()
 })
 
-document.getElementById('size-slider').addEventListener('input', (e) => {
+sizeSlider.addEventListener('input', (e) => {
   size = parseInt(e.target.value)
-  document.getElementById('size-label').textContent = size
+  sizeInput.value = size
+  updateCursorPreview()
+})
+
+sizeInput.addEventListener('input', (e) => {
+  let v = parseInt(e.target.value)
+  if (isNaN(v) || v < 1) v = 1
+  if (v > 50) v = 50
+  size = v
+  sizeSlider.value = v
+  e.target.value = v
   updateCursorPreview()
 })
 

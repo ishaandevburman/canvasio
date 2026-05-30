@@ -124,13 +124,18 @@ body {
 }
 
 #size-slider {
-  width: 100px;
+  width: 80px;
   vertical-align: middle;
 }
 
-#size-label {
+#size-input {
+  width: 44px;
+  padding: 2px 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
   font-size: 12px;
-  color: #666;
+  font-family: inherit;
+  text-align: center;
 }
 
 #clear-btn {

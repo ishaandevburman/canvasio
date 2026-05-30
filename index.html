@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>canvasio</title>
-<link rel="stylesheet" href="/static/style.css?v=6">
+<link rel="stylesheet" href="/static/style.css?v=7">
 </head>
 <body>
 <div id="join-modal">
@@ -30,7 +30,7 @@
       <label>
         Size
         <input type="range" id="size-slider" min="1" max="50" value="3">
-        <span id="size-label">3</span>
+        <input type="number" id="size-input" min="1" max="50" value="3">
       </label>
     </div>
     <button id="clear-btn">Clear</button>
@@ -41,6 +41,6 @@
   <canvas id="canvas"></canvas>
   <div id="user-list"></div>
 </div>
-<script src="/static/script.js?v=6"></script>
+<script src="/static/script.js?v=7"></script>
 </body>
 </html>
