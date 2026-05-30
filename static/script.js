@@ -376,21 +376,47 @@ sizeSlider.addEventListener('input', (e) => {
 })
 
 sizeInput.addEventListener('input', (e) => {
-  let v = parseInt(e.target.value)
-  if (isNaN(v) || v < 1) v = 1
+  const raw = e.target.value
+  if (raw === '') return
+  const v = parseInt(raw)
+  if (isNaN(v) || v < 1) return
   size = v
   if (v <= parseInt(sizeSlider.max)) sizeSlider.value = v
-  e.target.value = v
   updateCursorPreview()
 })
 
-document.getElementById('clear-btn').addEventListener('click', () => {
-  if (!confirm('Clear the board for everyone?')) return
-  strokes = []
-  pendingStrokes = {}
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'clear' }))
+sizeInput.addEventListener('blur', (e) => {
+  let v = parseInt(e.target.value)
+  if (isNaN(v) || v < 1) {
+    v = 1
+    size = v
+    e.target.value = v
+    sizeSlider.value = v
+    updateCursorPreview()
+  }
+})
+
+let clearPending = false
+let clearTimer = null
+const clearBtn = document.getElementById('clear-btn')
+clearBtn.addEventListener('click', () => {
+  if (clearPending) {
+    clearPending = false
+    clearTimer = null
+    clearBtn.textContent = 'Clear'
+    strokes = []
+    pendingStrokes = {}
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'clear' }))
+    }
+  } else {
+    clearPending = true
+    clearBtn.textContent = 'Confirm?'
+    clearTimer = setTimeout(() => {
+      clearPending = false
+      clearBtn.textContent = 'Clear'
+    }, 3000)
   }
 })
 
